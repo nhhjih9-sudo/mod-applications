@@ -28,8 +28,7 @@ button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9p
 <div class="wrap">
   <div id="login" class="card">
     <h2>🔐 دخول الإدارة</h2>
-    <input id="email" type="email" placeholder="الإيميل" autocomplete="username">
-    <input id="pass" type="password" placeholder="الكود / كلمة المرور" autocomplete="current-password">
+    <input id="pass" type="password" placeholder="كود الدخول">
     <button id="go">دخول</button>
     <div id="err"></div>
   </div>
@@ -51,26 +50,22 @@ const $=id=>document.getElementById(id);
 const LABELS={all:'الكل',pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض'};
 let filter='pending',docs=[],unsub=null;
 
-$('go').onclick=async()=>{
-  $('err').textContent='';
-  try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('pass').value)}
-  catch(e){$('err').textContent='خطأ: '+e.code}
-};
-$('out').onclick=()=>auth.signOut();
-
-auth.onAuthStateChanged(u=>{
-  if(unsub){unsub();unsub=null}
-  $('login').classList.toggle('hide',!!u);
-  $('panel').classList.toggle('hide',!u);
-  if(!u)return;
+const ADMIN_CODE='غيّر_هذا_الى_كودك_الطويل';
+function start(){
+  $('login').classList.add('hide');$('panel').classList.remove('hide');
   unsub=db.collection('applications').orderBy('createdAt','desc').onSnapshot(
     s=>{docs=s.docs;render()},
-    ()=>{$('list').textContent='ما عندك صلاحية. تأكد إن الإيميل هو إيميل الأدمن في قواعد Firestore.'}
+    ()=>{$('list').textContent='تعذر قراءة الطلبات. تأكد من قواعد Firestore.'}
   );
-});
+}
+$('go').onclick=()=>{
+  if($('pass').value===ADMIN_CODE){sessionStorage.setItem('adm','1');start()}
+  else $('err').textContent='الكود غلط.';
+};
+$('out').onclick=()=>{sessionStorage.removeItem('adm');location.reload()};
+if(sessionStorage.getItem('adm')==='1')start();
 
 function setStatus(id,status){db.collection('applications').doc(id).update({status})}
-function del(id){if(confirm('تحذف الطلب نهائياً؟'))db.collection('applications').doc(id).delete()}
 
 function el(t,c,txt){const e=document.createElement(t);if(c)e.className=c;if(txt!==undefined)e.textContent=txt;return e}
 
@@ -93,9 +88,9 @@ function render(){
       const r=el('div','f');r.append(el('b','',k+': '),document.createTextNode(v??''));c.append(r);
     });
     const a=el('div','row');
-    const ok=el('button','ok','قبول'),no=el('button','no','رفض'),rm=el('button','ghost','حذف');
-    ok.onclick=()=>setStatus(d.id,'accepted');no.onclick=()=>setStatus(d.id,'rejected');rm.onclick=()=>del(d.id);
-    a.append(ok,no,rm);c.append(a);list.append(c);
+    const ok=el('button','ok','قبول'),no=el('button','no','رفض');
+    ok.onclick=()=>setStatus(d.id,'accepted');no.onclick=()=>setStatus(d.id,'rejected');
+    a.append(ok,no);c.append(a);list.append(c);
   }
 }
 </script>
