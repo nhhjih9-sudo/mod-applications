@@ -54,7 +54,7 @@ let filter='pending',docs=[],unsub=null;
 $('go').onclick=async()=>{
   $('err').textContent='';
   try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('pass').value)}
-  catch(e){$('err').textContent='بيانات الدخول غلط.'}
+  catch(e){$('err').textContent='خطأ: '+e.code}
 };
 $('out').onclick=()=>auth.signOut();
 
