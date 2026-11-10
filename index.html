@@ -23,44 +23,74 @@ button:disabled{opacity:.6}
 #msg{margin-top:12px;font-weight:700}
 .check{display:flex;gap:8px;align-items:center}
 .check input{width:auto}
+.hide{display:none}
+#state{font-size:20px;font-weight:700;text-align:center;padding:36px 22px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card" style="border-top:5px solid var(--accent)">
-    <h1>🛡️ التقديم على مود</h1>
-    <p class="sub">عبّ النموذج بدقة، وبنراجع طلبك ونرد عليك.</p>
+  <div id="state" class="card">جاري التحميل...</div>
+  <div id="formBox" class="hide">
+    <div class="card" style="border-top:5px solid var(--accent)">
+      <h1>🛡️ التقديم على مود</h1>
+      <p class="sub">عبّ النموذج بدقة، وبنراجع طلبك. ملاحظة: نسجّل عنوان IP الخاص بك مع الطلب.</p>
+    </div>
+    <form id="f">
+      <div class="card"><label>اسمك في ديسكورد <span class="req">*</span></label><input name="discord" required maxlength="60"></div>
+      <div class="card"><label>اسمك داخل الماب <span class="req">*</span></label><input name="ingame" required maxlength="60"></div>
+      <div class="card"><label>عمرك <span class="req">*</span></label><input name="age" type="number" min="8" max="80" required></div>
+      <div class="card"><label>خبرتك في الإدارة <span class="req">*</span></label><textarea name="experience" required maxlength="800"></textarea></div>
+      <div class="card"><label>ليش تبي تصير مود؟ <span class="req">*</span></label><textarea name="reason" required maxlength="800"></textarea></div>
+      <div class="card"><label>كم ساعة تقدر تتواجد يومياً؟ <span class="req">*</span></label>
+        <select name="hours" required><option value="">اختر</option><option>أقل من ساعة</option><option>1 - 3 ساعات</option><option>3 - 5 ساعات</option><option>أكثر من 5 ساعات</option></select></div>
+      <div class="card check"><input type="checkbox" id="agree" required><label for="agree" style="margin:0">أوافق على القوانين وأتعهد بالالتزام بها</label></div>
+      <button id="btn" type="submit">إرسال الطلب</button>
+      <div id="msg"></div>
+    </form>
   </div>
-  <form id="f">
-    <div class="card"><label>اسمك في ديسكورد <span class="req">*</span></label><input name="discord" required maxlength="60"></div>
-    <div class="card"><label>اسمك داخل الماب <span class="req">*</span></label><input name="ingame" required maxlength="60"></div>
-    <div class="card"><label>عمرك <span class="req">*</span></label><input name="age" type="number" min="8" max="80" required></div>
-    <div class="card"><label>خبرتك في الإدارة <span class="req">*</span></label><textarea name="experience" required maxlength="800"></textarea></div>
-    <div class="card"><label>ليش تبي تصير مود؟ <span class="req">*</span></label><textarea name="reason" required maxlength="800"></textarea></div>
-    <div class="card"><label>كم ساعة تقدر تتواجد يومياً؟ <span class="req">*</span></label>
-      <select name="hours" required><option value="">اختر</option><option>أقل من ساعة</option><option>1 - 3 ساعات</option><option>3 - 5 ساعات</option><option>أكثر من 5 ساعات</option></select></div>
-    <div class="card check"><input type="checkbox" id="agree" required><label for="agree" style="margin:0">أوافق على القوانين وأتعهد بالالتزام بها</label></div>
-    <button id="btn" type="submit">إرسال الطلب</button>
-    <div id="msg"></div>
-  </form>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-const f=document.getElementById('f'),btn=document.getElementById('btn'),msg=document.getElementById('msg');
-f.addEventListener('submit',async e=>{
+const $=id=>document.getElementById(id);
+let IP='',KEY='';
+function show(t,c){const s=$('state');s.classList.remove('hide');s.textContent=t;s.style.borderColor=c||'';$('formBox').classList.add('hide')}
+function showForm(){$('state').classList.add('hide');$('formBox').classList.remove('hide')}
+
+(async()=>{
+  try{IP=(await (await fetch('https://api.ipify.org?format=json')).json()).ip}
+  catch(e){return show('تعذر التحقق من اتصالك. عطّل مانع الإعلانات وحدّث الصفحة.')}
+  KEY=IP.replace(/[.:]/g,'_');
+  try{
+    if((await db.doc('bans/'+KEY).get()).exists)return show('🚫 تم حظرك من التقديم.','#d64545');
+    const q=await db.collection('applications').where('ipKey','==',KEY).get();
+    let last=null;
+    q.forEach(d=>{const x=d.data(),t=x.createdAt?x.createdAt.toMillis():Infinity;if(!last||t>last.t)last={x,t}});
+    if(last&&!last.x.canRetry){
+      const s=last.x.status;
+      if(s==='accepted')return show('🎉 مبروك! تم قبول طلبك.','#1f9d55');
+      if(s==='rejected')return show('❌ نأسف، تم رفض طلبك.','#d64545');
+      return show('⏳ طلبك قيد المراجعة، انتظر الرد.');
+    }
+    const cfg=await db.doc('settings/config').get();
+    if(cfg.exists&&cfg.data().open===false)return show('🔒 التقديم مغلق حالياً.');
+    showForm();
+  }catch(e){show('صار خطأ في التحميل، حدّث الصفحة.')}
+})();
+
+$('f').addEventListener('submit',async e=>{
   e.preventDefault();
-  if(localStorage.getItem('applied')){msg.textContent='سبق وقدمت من هذا الجهاز.';return}
+  const btn=$('btn'),msg=$('msg');
   btn.disabled=true;msg.style.color='';msg.textContent='جاري الإرسال...';
-  const d=Object.fromEntries(new FormData(f));
-  d.age=Number(d.age);d.status='pending';d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+  const d=Object.fromEntries(new FormData($('f')));
+  d.age=Number(d.age);d.ip=IP;d.ipKey=KEY;d.status='pending';
+  d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
   try{
     await db.collection('applications').add(d);
-    localStorage.setItem('applied','1');f.reset();
-    msg.style.color='#5be08a';msg.textContent='✅ تم إرسال طلبك بنجاح!';
-  }catch(err){btn.disabled=false;msg.style.color='#ff6b6b';msg.textContent='صار خطأ، جرب مرة ثانية.'}
+    show('✅ تم إرسال طلبك! افتح الموقع لاحقاً وشوف حالة طلبك.','#1f9d55');
+  }catch(err){btn.disabled=false;msg.style.color='#ff6b6b';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
 });
 </script>
 </body>

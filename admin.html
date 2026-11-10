@@ -13,13 +13,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahom
 .wrap{max-width:760px;margin:auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px}
 input{width:100%;background:#12152a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;font:inherit;margin-bottom:10px}
-button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 18px;font:inherit;font-weight:700;cursor:pointer}
-.ok{background:#1f9d55}.no{background:#d64545}.ghost{background:#2a2f4d}
+button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}
+.ok{background:#1f9d55}.no{background:#d64545}.ghost{background:#2a2f4d}.warn{background:#b7791f}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .tab.on{background:var(--accent)}
 .f{margin:6px 0}.f b{color:var(--muted);font-weight:400}
 .badge{padding:2px 10px;border-radius:20px;font-size:13px}
-.pending{background:#5a4b10}.accepted{background:#14532d}.rejected{background:#5b1c1c}
+.pending{background:#5a4b10}.accepted{background:#14532d}.rejected{background:#5b1c1c}.retry{background:#1e3a8a}.banned{background:#7f1d1d}
 .hide{display:none}
 #err{color:#ff6b6b}
 </style>
@@ -35,6 +35,7 @@ button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9p
   <div id="panel" class="hide">
     <div class="row">
       <h2 style="margin:0;flex:1">طلبات المود</h2>
+      <button id="tg"></button>
       <button class="ghost" id="out">خروج</button>
     </div>
     <div class="row" id="tabs"></div>
@@ -47,50 +48,78 @@ button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9p
 <script src="firebase-config.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-const LABELS={all:'الكل',pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض'};
-let filter='pending',docs=[],unsub=null;
-
-const ADMIN_CODE='غيّر_هذا_الى_كودك_الطويل';
-function start(){
-  $('login').classList.add('hide');$('panel').classList.remove('hide');
-  unsub=db.collection('applications').orderBy('createdAt','desc').onSnapshot(
-    s=>{docs=s.docs;render()},
-    ()=>{$('list').textContent='تعذر قراءة الطلبات. تأكد من قواعد Firestore.'}
-  );
-}
-$('go').onclick=()=>{
-  if($('pass').value===ADMIN_CODE){sessionStorage.setItem('adm','1');start()}
-  else $('err').textContent='الكود غلط.';
-};
-$('out').onclick=()=>{sessionStorage.removeItem('adm');location.reload()};
-if(sessionStorage.getItem('adm')==='1')start();
-
-function setStatus(id,status){db.collection('applications').doc(id).update({status})}
+const LABELS={all:'الكل',pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض',bans:'المحظورون'};
+let filter='pending',docs=[],bans={},isOpen=true,CODE='';
 
 function el(t,c,txt){const e=document.createElement(t);if(c)e.className=c;if(txt!==undefined)e.textContent=txt;return e}
+async function adm(fn){const b=db.batch();b.set(db.doc('sessions/admin'),{code:CODE});fn(b);await b.commit()}
+function run(fn){adm(fn).catch(()=>alert('فشلت العملية. تأكد من الكود ومن قواعد Firestore.'))}
+
+async function login(){
+  CODE=$('pass').value;$('err').textContent='';
+  try{
+    await adm(b=>b.set(db.doc('meta/ping'),{t:Date.now()}));
+    sessionStorage.setItem('c',CODE);start();
+  }catch(e){sessionStorage.removeItem('c');$('err').textContent='الكود غلط أو القواعد غير منشورة. ('+e.code+')'}
+}
+$('go').onclick=login;
+$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('out').onclick=()=>{sessionStorage.removeItem('c');location.reload()};
+$('tg').onclick=()=>run(b=>b.set(db.doc('settings/config'),{open:!isOpen}));
+const saved=sessionStorage.getItem('c');if(saved){$('pass').value=saved;login()}
+
+function start(){
+  $('login').classList.add('hide');$('panel').classList.remove('hide');
+  db.collection('applications').orderBy('createdAt','desc').onSnapshot(s=>{docs=s.docs;render()});
+  db.collection('bans').onSnapshot(s=>{bans={};s.forEach(d=>bans[d.id]=d.data().ip);render()});
+  db.doc('settings/config').onSnapshot(s=>{isOpen=!s.exists||s.data().open!==false;render()});
+}
 
 function render(){
+  $('tg').textContent=isOpen?'🔒 قفل التقديم':'🔓 فتح التقديم';
+  $('tg').className=isOpen?'no':'ok';
   const tabs=$('tabs');tabs.replaceChildren();
   for(const k in LABELS){
-    const n=k==='all'?docs.length:docs.filter(d=>d.data().status===k).length;
+    const n=k==='all'?docs.length:k==='bans'?Object.keys(bans).length:docs.filter(d=>d.data().status===k).length;
     const b=el('button','tab ghost'+(filter===k?' on':''),`${LABELS[k]} (${n})`);
     b.onclick=()=>{filter=k;render()};tabs.append(b);
   }
   const list=$('list');list.replaceChildren();
+  if(filter==='bans'){
+    const ks=Object.keys(bans);
+    if(!ks.length)list.append(el('div','card','لا يوجد محظورين.'));
+    ks.forEach(k=>{
+      const c=el('div','card row');
+      c.append(el('b','',bans[k]||k));
+      const u=el('button','ok','فك الحظر');
+      u.onclick=()=>run(b=>b.delete(db.doc('bans/'+k)));
+      c.append(u);list.append(c);
+    });
+    return;
+  }
   const shown=docs.filter(d=>filter==='all'||d.data().status===filter);
   if(!shown.length)list.append(el('div','card','لا توجد طلبات.'));
   for(const d of shown){
-    const x=d.data(),c=el('div','card');
-    const h=el('div','row');
+    const x=d.data(),c=el('div','card'),h=el('div','row');
     h.append(el('b','',x.discord),el('span','badge '+x.status,LABELS[x.status]||x.status));
+    if(x.canRetry)h.append(el('span','badge retry','لديه فرصة جديدة'));
+    if(x.ipKey&&bans[x.ipKey])h.append(el('span','badge banned','محظور'));
     c.append(h);
-    [['اسم الماب',x.ingame],['العمر',x.age],['الساعات',x.hours],['الخبرة',x.experience],['السبب',x.reason]].forEach(([k,v])=>{
+    [['اسم الماب',x.ingame],['العمر',x.age],['الساعات',x.hours],['الخبرة',x.experience],['السبب',x.reason],['IP',x.ip||'—']].forEach(([k,v])=>{
       const r=el('div','f');r.append(el('b','',k+': '),document.createTextNode(v??''));c.append(r);
     });
-    const a=el('div','row');
-    const ok=el('button','ok','قبول'),no=el('button','no','رفض');
-    ok.onclick=()=>setStatus(d.id,'accepted');no.onclick=()=>setStatus(d.id,'rejected');
-    a.append(ok,no);c.append(a);list.append(c);
+    const a=el('div','row'),ref=()=>db.doc('applications/'+d.id);
+    const ok=el('button','ok','قبول'),no=el('button','no','رفض'),rt=el('button','warn','فرصة جديدة');
+    ok.onclick=()=>run(b=>b.update(ref(),{status:'accepted',canRetry:false}));
+    no.onclick=()=>run(b=>b.update(ref(),{status:'rejected',canRetry:false}));
+    rt.onclick=()=>run(b=>b.update(ref(),{canRetry:true}));
+    a.append(ok,no,rt);
+    if(x.ipKey){
+      const isB=!!bans[x.ipKey],bn=el('button',isB?'ghost':'no',isB?'فك حظر IP':'حظر IP');
+      bn.onclick=()=>run(b=>isB?b.delete(db.doc('bans/'+x.ipKey)):b.set(db.doc('bans/'+x.ipKey),{ip:x.ip}));
+      a.append(bn);
+    }
+    c.append(a);list.append(c);
   }
 }
 </script>
