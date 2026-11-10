@@ -4,46 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>التقديم على مود</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1220;--card:#1a1e33;--text:#eef0f8;--muted:#9aa0b8;--accent:#6c7cff;--line:#2a2f4d}
+:root{--bg:#f1f2f7;--card:#fff;--text:#1f2430;--muted:#6b7185;--accent:#4f46e5;--line:#e1e3ee;--title:#312e81;--field:#f7f8fc;--fline:#cfd3e3}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahoma,sans-serif;padding:24px 14px}
-.wrap{max-width:620px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:14px}
-h1{margin:0 0 6px;font-size:26px}
-p.sub{color:var(--muted);margin:0}
-label{display:block;font-weight:700;margin-bottom:8px}
-input,textarea,select{width:100%;background:#12152a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;font:inherit}
-textarea{min-height:100px;resize:vertical}
-input:focus,textarea:focus,select:focus{outline:2px solid var(--accent)}
-.req{color:#ff6b6b}
-button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:13px 28px;font:inherit;font-weight:700;cursor:pointer}
-button:disabled{opacity:.6}
-#msg{margin-top:12px;font-weight:700}
-.check{display:flex;gap:8px;align-items:center}
-.check input{width:auto}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahoma,sans-serif;padding:28px 14px}
+.wrap{max-width:640px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,36,48,.05)}
+.head{border-top:5px solid var(--accent);border-radius:4px 4px 14px 14px}
+h1{margin:0 0 6px;font-size:26px;color:var(--title)}
+p.sub{color:var(--muted);margin:0;line-height:1.7}
+label{display:block;font-weight:700;margin-bottom:9px}
+input,textarea,select{width:100%;background:var(--field);color:var(--text);border:1px solid var(--fline);border-radius:10px;padding:12px;font:inherit;transition:.15s}
+textarea{min-height:110px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.18);background:#fff}
+.req{color:#dc2626}
+button{width:100%;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(.92)}
+button:disabled{opacity:.6;cursor:default}
+.discord{background:#5865f2}
+#msg{margin-top:12px;font-weight:700;text-align:center}
+.check{display:flex;gap:10px;align-items:center}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+.check label{margin:0;font-weight:400}
 .hide{display:none}
-#state{font-size:20px;font-weight:700;text-align:center;padding:36px 22px}
+#state{font-size:20px;font-weight:700;text-align:center;padding:40px 22px;line-height:1.8}
+#state.good{background:#dcfce7;border-color:#86efac;color:#14532d}
+#state.bad{background:#fee2e2;border-color:#fca5a5;color:#7f1d1d}
+#state.wait{background:#fef9c3;border-color:#fde047;color:#713f12}
+#who{margin-top:10px;font-size:14px;color:var(--muted)}
+#who a{color:var(--accent);cursor:pointer;margin-right:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div id="state" class="card">جاري التحميل...</div>
+  <div id="loginBox" class="card head hide" style="text-align:center">
+    <h1>🛡️ التقديم على مود</h1>
+    <p class="sub" style="margin-bottom:18px">سجّل دخولك بحساب ديسكورد عشان تقدر تقدّم.</p>
+    <button id="dl" class="discord">تسجيل الدخول عبر ديسكورد</button>
+  </div>
   <div id="formBox" class="hide">
-    <div class="card" style="border-top:5px solid var(--accent)">
+    <div class="card head">
       <h1>🛡️ التقديم على مود</h1>
-      <p class="sub">عبّ النموذج بدقة، وبنراجع طلبك. ملاحظة: نسجّل عنوان IP الخاص بك مع الطلب.</p>
+      <p class="sub">عبّ النموذج بدقة، وبنراجع طلبك ونرد عليك. ملاحظة: نسجّل عنوان IP الخاص بك مع الطلب.</p>
+      <div id="who"></div>
     </div>
     <form id="f">
-      <div class="card"><label>اسمك في ديسكورد <span class="req">*</span></label><input name="discord" required maxlength="60"></div>
       <div class="card"><label>اسمك داخل الماب <span class="req">*</span></label><input name="ingame" required maxlength="60"></div>
       <div class="card"><label>عمرك <span class="req">*</span></label><input name="age" type="number" min="8" max="80" required></div>
       <div class="card"><label>خبرتك في الإدارة <span class="req">*</span></label><textarea name="experience" required maxlength="800"></textarea></div>
       <div class="card"><label>ليش تبي تصير مود؟ <span class="req">*</span></label><textarea name="reason" required maxlength="800"></textarea></div>
       <div class="card"><label>كم ساعة تقدر تتواجد يومياً؟ <span class="req">*</span></label>
         <select name="hours" required><option value="">اختر</option><option>أقل من ساعة</option><option>1 - 3 ساعات</option><option>3 - 5 ساعات</option><option>أكثر من 5 ساعات</option></select></div>
-      <div class="card check"><input type="checkbox" id="agree" required><label for="agree" style="margin:0">أوافق على القوانين وأتعهد بالالتزام بها</label></div>
+      <div class="card check"><input type="checkbox" id="agree" required><label for="agree">أوافق على القوانين وأتعهد بالالتزام بها</label></div>
       <button id="btn" type="submit">إرسال الطلب</button>
       <div id="msg"></div>
     </form>
@@ -54,30 +68,70 @@ button:disabled{opacity:.6}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
+const CLIENT_ID='PUT_DISCORD_CLIENT_ID';
+const REDIRECT='https://nhhjih9-sudo.github.io/mod-applications/';
+const GUILD_ID='';
+const MIN_DAYS=30;
+
 const $=id=>document.getElementById(id);
-let IP='',KEY='';
-function show(t,c){const s=$('state');s.classList.remove('hide');s.textContent=t;s.style.borderColor=c||'';$('formBox').classList.add('hide')}
-function showForm(){$('state').classList.add('hide');$('formBox').classList.remove('hide')}
+let IP='',KEY='',USER=null;
+function show(t,cls){const s=$('state');s.className='card '+(cls||'');s.textContent=t;$('formBox').classList.add('hide');$('loginBox').classList.add('hide')}
+function showForm(){$('state').classList.add('hide');$('loginBox').classList.add('hide');$('formBox').classList.remove('hide')}
+function showLogin(){$('state').classList.add('hide');$('formBox').classList.add('hide');$('loginBox').classList.remove('hide')}
+function ageDays(id){return (Date.now()-(Number(BigInt(id)>>22n)+1420070400000))/864e5}
+
+$('dl').onclick=()=>{
+  if(CLIENT_ID.startsWith('PUT_'))return alert('حط Client ID حق ديسكورد في الكود.');
+  location.href='https://discord.com/oauth2/authorize?client_id='+CLIENT_ID+'&response_type=token&redirect_uri='+encodeURIComponent(REDIRECT)+'&scope='+encodeURIComponent(GUILD_ID?'identify guilds':'identify');
+};
+
+async function finishLogin(token){
+  const h={Authorization:'Bearer '+token};
+  const u=await (await fetch('https://discord.com/api/users/@me',{headers:h})).json();
+  if(!u.id)throw new Error('no user');
+  if(ageDays(u.id)<MIN_DAYS){show('🚫 حسابك جديد. لازم يكون عمر حساب ديسكورد '+MIN_DAYS+' يوم على الأقل.','bad');return false}
+  if(GUILD_ID){
+    const g=await (await fetch('https://discord.com/api/users/@me/guilds',{headers:h})).json();
+    if(!Array.isArray(g)||!g.some(x=>x.id===GUILD_ID)){show('🚫 لازم تكون عضو في سيرفر الماب عشان تقدّم.','bad');return false}
+  }
+  localStorage.setItem('du',JSON.stringify({id:u.id,name:u.global_name||u.username}));
+  return true;
+}
 
 (async()=>{
+  const p=new URLSearchParams(location.hash.slice(1));
+  if(p.get('access_token')){
+    history.replaceState(null,'',location.pathname);
+    try{if(!await finishLogin(p.get('access_token')))return}
+    catch(e){return show('فشل تسجيل الدخول عبر ديسكورد. حدّث الصفحة وجرّب مرة ثانية.','bad')}
+  }
+  const raw=localStorage.getItem('du');
+  if(!raw)return showLogin();
+  USER=JSON.parse(raw);
+  $('who').textContent='مسجّل بحساب: '+USER.name;
+  const out=document.createElement('a');out.textContent='خروج';
+  out.onclick=()=>{localStorage.removeItem('du');location.reload()};
+  $('who').append(out);
+
   try{IP=(await (await fetch('https://api.ipify.org?format=json')).json()).ip}
-  catch(e){return show('تعذر التحقق من اتصالك. عطّل مانع الإعلانات وحدّث الصفحة.')}
+  catch(e){return show('تعذر التحقق من اتصالك. عطّل مانع الإعلانات وحدّث الصفحة.','wait')}
   KEY=IP.replace(/[.:]/g,'_');
   try{
-    if((await db.doc('bans/'+KEY).get()).exists)return show('🚫 تم حظرك من التقديم.','#d64545');
-    const q=await db.collection('applications').where('ipKey','==',KEY).get();
+    const [bIp,bAcc]=await Promise.all([db.doc('bans/'+KEY).get(),db.doc('bans/d_'+USER.id).get()]);
+    if(bIp.exists||bAcc.exists)return show('🚫 تم حظرك من التقديم.','bad');
+    const q=await db.collection('applications').where('discordId','==',USER.id).get();
     let last=null;
     q.forEach(d=>{const x=d.data(),t=x.createdAt?x.createdAt.toMillis():Infinity;if(!last||t>last.t)last={x,t}});
     if(last&&!last.x.canRetry){
       const s=last.x.status;
-      if(s==='accepted')return show('🎉 مبروك! تم قبول طلبك.','#1f9d55');
-      if(s==='rejected')return show('❌ نأسف، تم رفض طلبك.','#d64545');
-      return show('⏳ طلبك قيد المراجعة، انتظر الرد.');
+      if(s==='accepted')return show('🎉 مبروك! تم قبول طلبك.','good');
+      if(s==='rejected')return show('❌ نأسف، تم رفض طلبك.','bad');
+      return show('⏳ طلبك قيد المراجعة، انتظر الرد.','wait');
     }
     const cfg=await db.doc('settings/config').get();
-    if(cfg.exists&&cfg.data().open===false)return show('🔒 التقديم مغلق حالياً.');
+    if(cfg.exists&&cfg.data().open===false)return show('🔒 التقديم مغلق حالياً.','wait');
     showForm();
-  }catch(e){show('صار خطأ في التحميل، حدّث الصفحة.')}
+  }catch(e){show('صار خطأ في التحميل، حدّث الصفحة.','bad')}
 })();
 
 $('f').addEventListener('submit',async e=>{
@@ -85,12 +139,12 @@ $('f').addEventListener('submit',async e=>{
   const btn=$('btn'),msg=$('msg');
   btn.disabled=true;msg.style.color='';msg.textContent='جاري الإرسال...';
   const d=Object.fromEntries(new FormData($('f')));
-  d.age=Number(d.age);d.ip=IP;d.ipKey=KEY;d.status='pending';
+  d.age=Number(d.age);d.discord=USER.name;d.discordId=USER.id;d.ip=IP;d.ipKey=KEY;d.status='pending';
   d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
   try{
     await db.collection('applications').add(d);
-    show('✅ تم إرسال طلبك! افتح الموقع لاحقاً وشوف حالة طلبك.','#1f9d55');
-  }catch(err){btn.disabled=false;msg.style.color='#ff6b6b';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
+    show('✅ تم إرسال طلبك! افتح الموقع لاحقاً وشوف حالة طلبك.','good');
+  }catch(err){btn.disabled=false;msg.style.color='#dc2626';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
 });
 </script>
 </body>

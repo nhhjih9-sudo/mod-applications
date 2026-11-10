@@ -5,36 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>لوحة الإدارة</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1220;--card:#1a1e33;--text:#eef0f8;--muted:#9aa0b8;--accent:#6c7cff;--line:#2a2f4d}
+:root{--bg:#f1f2f7;--card:#fff;--text:#1f2430;--muted:#6b7185;--accent:#4f46e5;--line:#e1e3ee;--title:#312e81;--field:#f7f8fc;--fline:#cfd3e3}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahoma,sans-serif;padding:24px 14px}
-.wrap{max-width:760px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px}
-input{width:100%;background:#12152a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;font:inherit;margin-bottom:10px}
-button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}
-.ok{background:#1f9d55}.no{background:#d64545}.ghost{background:#2a2f4d}.warn{background:#b7791f}
+.wrap{max-width:780px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(31,36,48,.05)}
+h2{color:var(--title)}
+input{width:100%;background:var(--field);color:var(--text);border:1px solid var(--fline);border-radius:10px;padding:12px;font:inherit;margin-bottom:10px}
+input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.18);background:#fff}
+button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(.92)}
+.ok{background:#16a34a}.no{background:#dc2626}.warn{background:#d97706}
+.ghost{background:#e5e7f0;color:var(--text)}
+.tab.on{background:var(--accent);color:#fff}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
-.tab.on{background:var(--accent)}
-.f{margin:6px 0}.f b{color:var(--muted);font-weight:400}
-.badge{padding:2px 10px;border-radius:20px;font-size:13px}
-.pending{background:#5a4b10}.accepted{background:#14532d}.rejected{background:#5b1c1c}.retry{background:#1e3a8a}.banned{background:#7f1d1d}
+.f{margin:7px 0;line-height:1.7}.f b{color:var(--muted);font-weight:500}
+.badge{padding:3px 12px;border-radius:20px;font-size:13px;font-weight:500}
+.pending{background:#fef9c3;color:#713f12}.accepted{background:#dcfce7;color:#14532d}.rejected{background:#fee2e2;color:#7f1d1d}
+.retry{background:#e0e7ff;color:#312e81}.banned{background:#fecaca;color:#7f1d1d}
+.ip{direction:ltr;display:inline-block;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-family:monospace}
 .hide{display:none}
-#err{color:#ff6b6b}
+#err{color:#dc2626}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div id="login" class="card">
-    <h2>🔐 دخول الإدارة</h2>
+  <div id="login" class="card" style="border-top:5px solid var(--accent)">
+    <h2 style="margin-top:0">🔐 دخول الإدارة</h2>
     <input id="pass" type="password" placeholder="كود الدخول">
     <button id="go">دخول</button>
     <div id="err"></div>
   </div>
   <div id="panel" class="hide">
-    <div class="row">
-      <h2 style="margin:0;flex:1">طلبات المود</h2>
+    <div class="card row" style="border-top:5px solid var(--accent);margin-bottom:12px">
+      <h2 style="margin:0;flex:1">🛡️ طلبات المود</h2>
       <button id="tg"></button>
       <button class="ghost" id="out">خروج</button>
     </div>
@@ -89,8 +95,8 @@ function render(){
     const ks=Object.keys(bans);
     if(!ks.length)list.append(el('div','card','لا يوجد محظورين.'));
     ks.forEach(k=>{
-      const c=el('div','card row');
-      c.append(el('b','',bans[k]||k));
+      const c=el('div','card row');c.style.marginBottom='12px';
+      c.append(el('span','ip',bans[k]||k));
       const u=el('button','ok','فك الحظر');
       u.onclick=()=>run(b=>b.delete(db.doc('bans/'+k)));
       c.append(u);list.append(c);
@@ -101,14 +107,18 @@ function render(){
   if(!shown.length)list.append(el('div','card','لا توجد طلبات.'));
   for(const d of shown){
     const x=d.data(),c=el('div','card'),h=el('div','row');
+    h.style.marginBottom='8px';
     h.append(el('b','',x.discord),el('span','badge '+x.status,LABELS[x.status]||x.status));
     if(x.canRetry)h.append(el('span','badge retry','لديه فرصة جديدة'));
-    if(x.ipKey&&bans[x.ipKey])h.append(el('span','badge banned','محظور'));
+    if((x.ipKey&&bans[x.ipKey])||(x.discordId&&bans['d_'+x.discordId]))h.append(el('span','badge banned','محظور'));
     c.append(h);
-    [['اسم الماب',x.ingame],['العمر',x.age],['الساعات',x.hours],['الخبرة',x.experience],['السبب',x.reason],['IP',x.ip||'—']].forEach(([k,v])=>{
+    [['اسم الماب',x.ingame],['العمر',x.age],['الساعات',x.hours],['الخبرة',x.experience],['السبب',x.reason]].forEach(([k,v])=>{
       const r=el('div','f');r.append(el('b','',k+': '),document.createTextNode(v??''));c.append(r);
     });
-    const a=el('div','row'),ref=()=>db.doc('applications/'+d.id);
+    const ipr=el('div','f');ipr.append(el('b','','IP: '),el('span','ip',x.ip||'—'));c.append(ipr);
+    if(x.discordId){const di=el('div','f');di.append(el('b','','Discord ID: '),el('span','ip',x.discordId));c.append(di)}
+    const a=el('div','row');a.style.margin='12px 0 0';
+    const ref=()=>db.doc('applications/'+d.id);
     const ok=el('button','ok','قبول'),no=el('button','no','رفض'),rt=el('button','warn','فرصة جديدة');
     ok.onclick=()=>run(b=>b.update(ref(),{status:'accepted',canRetry:false}));
     no.onclick=()=>run(b=>b.update(ref(),{status:'rejected',canRetry:false}));
@@ -118,6 +128,11 @@ function render(){
       const isB=!!bans[x.ipKey],bn=el('button',isB?'ghost':'no',isB?'فك حظر IP':'حظر IP');
       bn.onclick=()=>run(b=>isB?b.delete(db.doc('bans/'+x.ipKey)):b.set(db.doc('bans/'+x.ipKey),{ip:x.ip}));
       a.append(bn);
+    }
+    if(x.discordId){
+      const k='d_'+x.discordId,isA=!!bans[k],ba=el('button',isA?'ghost':'no',isA?'فك حظر الحساب':'حظر الحساب');
+      ba.onclick=()=>run(b=>isA?b.delete(db.doc('bans/'+k)):b.set(db.doc('bans/'+k),{ip:'حساب: '+x.discord+' ('+x.discordId+')'}));
+      a.append(ba);
     }
     c.append(a);list.append(c);
   }
