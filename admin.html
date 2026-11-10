@@ -53,13 +53,53 @@ button:hover{filter:brightness(1.1)}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
+const WORKER_URL='https://ancient-butterfly-5aa6.nhhjih9.workers.dev/';
+
 const $=id=>document.getElementById(id);
 const LABELS={all:'الكل',pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض',bans:'المحظورون'};
-let filter='pending',docs=[],bans={},isOpen=true,CODE='';
+let filter='pending',docs=[],bans={},isOpen=true,CODE='',sel=new Set(),prog='';
 
 function el(t,c,txt){const e=document.createElement(t);if(c)e.className=c;if(txt!==undefined)e.textContent=txt;return e}
 async function adm(fn){const b=db.batch();b.set(db.doc('sessions/admin'),{code:CODE});fn(b);await b.commit()}
 function run(fn){adm(fn).catch(()=>alert('فشلت العملية. تأكد من الكود ومن قواعد Firestore.'))}
+async function act(fn){
+  try{await adm(fn);return true}
+  catch(e){alert('فشلت العملية. تأكد من الكود ومن قواعد Firestore.');return false}
+}
+
+async function roleCall(userId,action){
+  try{
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,userId,action})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok)return {ok:true};
+    if(r.status===403&&!j.status)return {ok:false,why:'كود الأدمن في الـ Worker غير مطابق لكودك'};
+    if(j.status===404)return {ok:false,why:'الشخص مو داخل السيرفر'};
+    if(j.status===403)return {ok:false,why:'رتبة البوت أقل من الرتبة المطلوبة أو ينقصه صلاحية Manage Roles'};
+    return {ok:false,why:'فشل تعديل الرتبة، تأكد من إعدادات البوت'};
+  }catch(e){return {ok:false,why:'تعذر الاتصال بالـ Worker'}}
+}
+async function giveRole(userId,action,manual){
+  const r=await roleCall(userId,action);
+  if(!r.ok)alert((manual?'':'تم تغيير الحالة، لكن ')+r.why+'.');
+  else if(manual)alert('تم ✅');
+}
+function nameOf(id){const d=docs.find(d=>d.data().discordId===id);return d?d.data().discord:id}
+function renderProg(){const p=$('prog');if(p)p.textContent=prog}
+async function bulk(ids,action){
+  ids=[...new Set(ids)];
+  if(!ids.length)return alert('ما فيه أحد.');
+  const word=action==='add'?'إعطاء الرتبة':'سحب الرتبة';
+  if(!confirm(word+' لعدد '+ids.length+' شخص؟'))return;
+  let ok=0;const fails=[];
+  for(let i=0;i<ids.length;i++){
+    prog=word+': '+(i+1)+' / '+ids.length+' ...';renderProg();
+    const r=await roleCall(ids[i],action);
+    if(r.ok)ok++;else{fails.push(nameOf(ids[i])+' ('+r.why+')');if(r.why.startsWith('كود'))break}
+    await new Promise(s=>setTimeout(s,500));
+  }
+  prog='انتهى: نجح '+ok+' / فشل '+fails.length;renderProg();
+  if(fails.length)alert('فشل مع:\n'+fails.join('\n'));
+}
 
 async function login(){
   CODE=$('pass').value;$('err').textContent='';
@@ -88,7 +128,7 @@ function render(){
   for(const k in LABELS){
     const n=k==='all'?docs.length:k==='bans'?Object.keys(bans).length:docs.filter(d=>d.data().status===k).length;
     const b=el('button','tab ghost'+(filter===k?' on':''),`${LABELS[k]} (${n})`);
-    b.onclick=()=>{filter=k;render()};tabs.append(b);
+    b.onclick=()=>{filter=k;prog='';render()};tabs.append(b);
   }
   const list=$('list');list.replaceChildren();
   if(filter==='bans'){
@@ -103,11 +143,31 @@ function render(){
     });
     return;
   }
+  if(filter==='accepted'){
+    const acc=()=>docs.filter(d=>d.data().status==='accepted'&&d.data().discordId).map(d=>d.data().discordId);
+    const t=el('div','card'),r1=el('div','row');
+    const mk=(txt,cls,fn)=>{const b=el('button',cls,txt);b.onclick=fn;r1.append(b)};
+    mk('✅ إعطاء الرتبة للكل','ok',()=>bulk(acc(),'add'));
+    mk('❌ سحب الرتبة من الكل','no',()=>bulk(acc(),'remove'));
+    mk('إعطاء الرتبة للمحددين','ok',()=>bulk([...sel],'add'));
+    mk('سحب الرتبة من المحددين','no',()=>bulk([...sel],'remove'));
+    mk('تحديد الكل','ghost',()=>{acc().forEach(i=>sel.add(i));render()});
+    mk('إلغاء التحديد','ghost',()=>{sel.clear();render()});
+    t.append(r1);
+    const p=el('div','f');p.id='prog';p.textContent=prog||('المحدد: '+sel.size);
+    t.append(p);list.append(t);
+  }
   const shown=docs.filter(d=>filter==='all'||d.data().status===filter);
   if(!shown.length)list.append(el('div','card','لا توجد طلبات.'));
   for(const d of shown){
     const x=d.data(),c=el('div','card'),h=el('div','row');
     h.style.marginBottom='8px';
+    if(filter==='accepted'&&x.discordId){
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=sel.has(x.discordId);
+      cb.style.cssText='width:20px;height:20px;margin:0;padding:0;accent-color:#d4af37';
+      cb.onchange=()=>{cb.checked?sel.add(x.discordId):sel.delete(x.discordId);if(!prog){const p=$('prog');if(p)p.textContent='المحدد: '+sel.size}};
+      h.append(cb);
+    }
     h.append(el('b','',x.discord),el('span','badge '+x.status,LABELS[x.status]||x.status));
     if(x.canRetry)h.append(el('span','badge retry','لديه فرصة جديدة'));
     if((x.ipKey&&bans[x.ipKey])||(x.discordId&&bans['d_'+x.discordId]))h.append(el('span','badge banned','محظور'));
@@ -120,10 +180,23 @@ function render(){
     const a=el('div','row');a.style.margin='12px 0 0';
     const ref=()=>db.doc('applications/'+d.id);
     const ok=el('button','ok','قبول'),no=el('button','no','رفض'),rt=el('button','warn','فرصة جديدة');
-    ok.onclick=()=>run(b=>b.update(ref(),{status:'accepted',canRetry:false}));
-    no.onclick=()=>run(b=>b.update(ref(),{status:'rejected',canRetry:false}));
+    ok.onclick=async()=>{
+      if(!await act(b=>b.update(ref(),{status:'accepted',canRetry:false})))return;
+      if(x.discordId)giveRole(x.discordId,'add');
+      else alert('تم القبول، لكن هذا طلب قديم بدون حساب ديسكورد، فما يقدر البوت يعطيه رتبة.');
+    };
+    no.onclick=async()=>{
+      if(!await act(b=>b.update(ref(),{status:'rejected',canRetry:false})))return;
+      if(x.status==='accepted'&&x.discordId)giveRole(x.discordId,'remove');
+    };
     rt.onclick=()=>run(b=>b.update(ref(),{canRetry:true}));
     a.append(ok,no,rt);
+    if(x.status==='accepted'&&x.discordId){
+      const ga=el('button','ok','إعطاء رتبة'),ra=el('button','ghost','سحب رتبة');
+      ga.onclick=()=>giveRole(x.discordId,'add',true);
+      ra.onclick=()=>giveRole(x.discordId,'remove',true);
+      a.append(ga,ra);
+    }
     if(x.ipKey){
       const isB=!!bans[x.ipKey],bn=el('button',isB?'ghost':'no',isB?'فك حظر IP':'حظر IP');
       bn.onclick=()=>run(b=>isB?b.delete(db.doc('bans/'+x.ipKey)):b.set(db.doc('bans/'+x.ipKey),{ip:x.ip}));
