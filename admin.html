@@ -19,6 +19,7 @@ button{background:var(--accent);color:var(--ink);border:0;border-radius:10px;pad
 button:hover{filter:brightness(1.1)}
 .ok{background:#16a34a;color:#fff}.no{background:#dc2626;color:#fff}.warn{background:#d97706;color:#fff}
 .ghost{background:#243a5e;color:var(--text)}
+.discord{background:#5865f2;color:#fff;width:100%;padding:12px}
 .tab.on{background:var(--accent);color:var(--ink)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .f{margin:7px 0;line-height:1.7}.f b{color:var(--muted);font-weight:500}
@@ -27,22 +28,37 @@ button:hover{filter:brightness(1.1)}
 .retry{background:#1e2f5a;color:#c7d2fe}.banned{background:#5b1c1c;color:#fecaca}
 .ip{direction:ltr;display:inline-block;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-family:monospace}
 .hide{display:none}
-#err{color:#f87171}
+.or{text-align:center;color:var(--muted);margin:14px 0;font-size:14px}
+#err{color:#f87171;margin-top:8px}
+.owner-in{flex:1;min-width:140px;margin:0}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div id="login" class="card" style="border-top:5px solid var(--accent)">
     <h2 style="margin-top:0">🔐 دخول الإدارة</h2>
+    <button id="dl" class="discord">الدخول عبر ديسكورد</button>
+    <div class="or">أو بالكود</div>
     <input id="pass" type="password" placeholder="كود الدخول">
     <button id="go">دخول</button>
     <div id="err"></div>
   </div>
   <div id="panel" class="hide">
     <div class="card row" style="border-top:5px solid var(--accent);margin-bottom:12px">
+      <button id="ownerBtn" class="warn hide">👑 قائمة الأدمن</button>
       <h2 style="margin:0;flex:1">🛡️ طلبات المود</h2>
       <button id="tg"></button>
       <button class="ghost" id="out">خروج</button>
+    </div>
+    <div id="ownerBox" class="card hide">
+      <h3 style="margin:0 0 6px;color:var(--title)">👑 قائمة الأدمن</h3>
+      <div class="f" style="color:var(--muted);font-size:14px">الأشخاص هنا يدخلون اللوحة عبر ديسكورد بدون كود. مالك السيرفر والرتب المحددة في Cloudflare مسموح لهم دائماً.</div>
+      <div id="adminList"></div>
+      <div class="row" style="margin:12px 0 0">
+        <input id="aid" class="owner-in" placeholder="Discord ID للشخص" inputmode="numeric">
+        <input id="aname" class="owner-in" placeholder="الاسم (اختياري)">
+        <button id="aadd" class="ok">إضافة</button>
+      </div>
     </div>
     <div class="row" id="tabs"></div>
     <div id="list"></div>
@@ -53,11 +69,13 @@ button:hover{filter:brightness(1.1)}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
+const CLIENT_ID='1569634081916981268';
 const WORKER_URL='https://ancient-butterfly-5aa6.nhhjih9.workers.dev/';
+const ADMIN_REDIRECT='https://nhhjih9-sudo.github.io/mod-applications/admin.html';
 
 const $=id=>document.getElementById(id);
 const LABELS={all:'الكل',pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض',bans:'المحظورون'};
-let filter='pending',docs=[],bans={},isOpen=true,CODE='',sel=new Set(),prog='';
+let filter='pending',docs=[],bans={},isOpen=true,CODE='',OWNER='',admins=[],sel=new Set(),prog='';
 
 function el(t,c,txt){const e=document.createElement(t);if(c)e.className=c;if(txt!==undefined)e.textContent=txt;return e}
 async function adm(fn){const b=db.batch();b.set(db.doc('sessions/admin'),{code:CODE});fn(b);await b.commit()}
@@ -65,6 +83,10 @@ function run(fn){adm(fn).catch(()=>alert('فشلت العملية. تأكد من
 async function act(fn){
   try{await adm(fn);return true}
   catch(e){alert('فشلت العملية. تأكد من الكود ومن قواعد Firestore.');return false}
+}
+async function ownerRun(fn){
+  try{const b=db.batch();b.set(db.doc('sessions/owner'),{code:OWNER});fn(b);await b.commit()}
+  catch(e){alert('فشلت العملية. تأكد إن OWNER_CODE في Cloudflare نفسه كود الأونر في قواعد Firestore.')}
 }
 
 async function roleCall(userId,action){
@@ -101,24 +123,75 @@ async function bulk(ids,action){
   if(fails.length)alert('فشل مع:\n'+fails.join('\n'));
 }
 
-async function login(){
-  CODE=$('pass').value;$('err').textContent='';
+async function login(code){
+  CODE=code;$('err').textContent='';
   try{
     await adm(b=>b.set(db.doc('meta/ping'),{t:Date.now()}));
     sessionStorage.setItem('c',CODE);start();
-  }catch(e){sessionStorage.removeItem('c');$('err').textContent='الكود غلط أو القواعد غير منشورة. ('+e.code+')'}
+  }catch(e){sessionStorage.removeItem('c');sessionStorage.removeItem('o');OWNER='';$('err').textContent='الكود غلط أو القواعد غير منشورة. ('+e.code+')'}
 }
-$('go').onclick=login;
-$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
-$('out').onclick=()=>{sessionStorage.removeItem('c');location.reload()};
+$('go').onclick=()=>{OWNER='';sessionStorage.removeItem('o');login($('pass').value)};
+$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('go').onclick()});
+$('dl').onclick=()=>{
+  if(CLIENT_ID.startsWith('PUT_'))return alert('حط Client ID حق ديسكورد في الكود.');
+  location.href='https://discord.com/oauth2/authorize?client_id='+CLIENT_ID+'&response_type=token&redirect_uri='+encodeURIComponent(ADMIN_REDIRECT)+'&scope=identify';
+};
+$('out').onclick=()=>{sessionStorage.removeItem('c');sessionStorage.removeItem('o');location.reload()};
 $('tg').onclick=()=>run(b=>b.set(db.doc('settings/config'),{open:!isOpen}));
-const saved=sessionStorage.getItem('c');if(saved){$('pass').value=saved;login()}
+$('ownerBtn').onclick=()=>$('ownerBox').classList.toggle('hide');
+$('aadd').onclick=()=>{
+  const id=$('aid').value.trim(),name=$('aname').value.trim().replace(/\|/g,'')||'بدون اسم';
+  if(!/^\d{5,25}$/.test(id))return alert('اكتب Discord ID صحيح (أرقام فقط).');
+  if(admins.some(a=>a.split('|')[0]===id))return alert('هذا الشخص موجود في القائمة.');
+  ownerRun(b=>b.set(db.doc('adminlist/main'),{users:firebase.firestore.FieldValue.arrayUnion(id+'|'+name)},{merge:true}));
+  $('aid').value='';$('aname').value='';
+};
+
+(async()=>{
+  const t=new URLSearchParams(location.hash.slice(1)).get('access_token');
+  if(t){
+    history.replaceState(null,'',location.pathname);
+    $('err').style.color='#aab4c4';$('err').textContent='جاري التحقق من رتبتك...';
+    try{
+      const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',token:t})});
+      const j=await r.json().catch(()=>({}));
+      $('err').style.color='';
+      if(r.ok&&j.code){
+        if(j.ownerCode){OWNER=j.ownerCode;sessionStorage.setItem('o',OWNER)}
+        else{OWNER='';sessionStorage.removeItem('o')}
+        return login(j.code);
+      }
+      $('err').textContent=r.status===403?'حسابك ما عنده صلاحية دخول اللوحة (أو مو داخل السيرفر).':'فشل التحقق عبر ديسكورد.';
+    }catch(e){$('err').style.color='';$('err').textContent='تعذر الاتصال بالـ Worker.'}
+    return;
+  }
+  const saved=sessionStorage.getItem('c');
+  if(saved){OWNER=sessionStorage.getItem('o')||'';login(saved)}
+})();
 
 function start(){
   $('login').classList.add('hide');$('panel').classList.remove('hide');
   db.collection('applications').orderBy('createdAt','desc').onSnapshot(s=>{docs=s.docs;render()});
   db.collection('bans').onSnapshot(s=>{bans={};s.forEach(d=>bans[d.id]=d.data().ip);render()});
   db.doc('settings/config').onSnapshot(s=>{isOpen=!s.exists||s.data().open!==false;render()});
+  if(OWNER){
+    $('ownerBtn').classList.remove('hide');
+    db.doc('adminlist/main').onSnapshot(s=>{admins=s.exists?(s.data().users||[]):[];renderAdmins()});
+  }
+}
+
+function renderAdmins(){
+  const l=$('adminList');l.replaceChildren();
+  if(!admins.length){const e=el('div','f','لا يوجد أحد في القائمة بعد.');e.style.color='var(--muted)';l.append(e);return}
+  admins.forEach(a=>{
+    const i=a.indexOf('|'),id=i<0?a:a.slice(0,i),name=i<0?'':a.slice(i+1);
+    const r=el('div','row');r.style.cssText='margin:8px 0 0;border-top:1px solid var(--line);padding-top:8px';
+    const n=el('b','',name||'بدون اسم');n.style.flex='1';
+    r.append(n,el('span','ip',id));
+    const d=el('button','no','حذف');
+    d.onclick=()=>{if(confirm('حذف '+(name||id)+' من قائمة الأدمن؟'))ownerRun(b=>b.set(db.doc('adminlist/main'),{users:firebase.firestore.FieldValue.arrayRemove(a)},{merge:true}))};
+    r.append(d);l.append(r);
+  });
 }
 
 function render(){
