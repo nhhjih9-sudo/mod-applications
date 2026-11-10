@@ -7,27 +7,27 @@
 <title>لوحة الإدارة</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f1f2f7;--card:#fff;--text:#1f2430;--muted:#6b7185;--accent:#4f46e5;--line:#e1e3ee;--title:#312e81;--field:#f7f8fc;--fline:#cfd3e3}
+:root{--bg:#0c1a2e;--card:#12233d;--text:#f3efe2;--muted:#aab4c4;--accent:#d4af37;--line:#243a5e;--title:#d4af37;--field:#0c1a2e;--fline:#3a5078;--ink:#0c1a2e}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahoma,sans-serif;padding:24px 14px}
 .wrap{max-width:780px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 1px 3px rgba(31,36,48,.05)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px}
 h2{color:var(--title)}
 input{width:100%;background:var(--field);color:var(--text);border:1px solid var(--fline);border-radius:10px;padding:12px;font:inherit;margin-bottom:10px}
-input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.18);background:#fff}
-button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;transition:.15s}
-button:hover{filter:brightness(.92)}
-.ok{background:#16a34a}.no{background:#dc2626}.warn{background:#d97706}
-.ghost{background:#e5e7f0;color:var(--text)}
-.tab.on{background:var(--accent);color:#fff}
+input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,175,55,.22)}
+button{background:var(--accent);color:var(--ink);border:0;border-radius:10px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(1.1)}
+.ok{background:#16a34a;color:#fff}.no{background:#dc2626;color:#fff}.warn{background:#d97706;color:#fff}
+.ghost{background:#243a5e;color:var(--text)}
+.tab.on{background:var(--accent);color:var(--ink)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .f{margin:7px 0;line-height:1.7}.f b{color:var(--muted);font-weight:500}
 .badge{padding:3px 12px;border-radius:20px;font-size:13px;font-weight:500}
-.pending{background:#fef9c3;color:#713f12}.accepted{background:#dcfce7;color:#14532d}.rejected{background:#fee2e2;color:#7f1d1d}
-.retry{background:#e0e7ff;color:#312e81}.banned{background:#fecaca;color:#7f1d1d}
+.pending{background:#4a3d10;color:#f3e08a}.accepted{background:#14391f;color:#86efac}.rejected{background:#4a1c1c;color:#fca5a5}
+.retry{background:#1e2f5a;color:#c7d2fe}.banned{background:#5b1c1c;color:#fecaca}
 .ip{direction:ltr;display:inline-block;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-family:monospace}
 .hide{display:none}
-#err{color:#dc2626}
+#err{color:#f87171}
 </style>
 </head>
 <body>

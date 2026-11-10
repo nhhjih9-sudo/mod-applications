@@ -6,32 +6,32 @@
 <title>التقديم على مود</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f1f2f7;--card:#fff;--text:#1f2430;--muted:#6b7185;--accent:#4f46e5;--line:#e1e3ee;--title:#312e81;--field:#f7f8fc;--fline:#cfd3e3}
+:root{--bg:#0c1a2e;--card:#12233d;--text:#f3efe2;--muted:#aab4c4;--accent:#d4af37;--line:#243a5e;--title:#d4af37;--field:#0c1a2e;--fline:#3a5078;--ink:#0c1a2e}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahoma,sans-serif;padding:28px 14px}
 .wrap{max-width:640px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,36,48,.05)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px}
 .head{border-top:5px solid var(--accent);border-radius:4px 4px 14px 14px}
 h1{margin:0 0 6px;font-size:26px;color:var(--title)}
 p.sub{color:var(--muted);margin:0;line-height:1.7}
 label{display:block;font-weight:700;margin-bottom:9px}
 input,textarea,select{width:100%;background:var(--field);color:var(--text);border:1px solid var(--fline);border-radius:10px;padding:12px;font:inherit;transition:.15s}
 textarea{min-height:110px;resize:vertical}
-input:focus,textarea:focus,select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.18);background:#fff}
-.req{color:#dc2626}
-button{width:100%;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:.15s}
-button:hover{filter:brightness(.92)}
+input:focus,textarea:focus,select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,175,55,.22)}
+.req{color:#f87171}
+button{width:100%;background:var(--accent);color:var(--ink);border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(1.08)}
 button:disabled{opacity:.6;cursor:default}
-.discord{background:#5865f2}
+.discord{background:#5865f2;color:#fff}
 #msg{margin-top:12px;font-weight:700;text-align:center}
 .check{display:flex;gap:10px;align-items:center}
 .check input{width:20px;height:20px;accent-color:var(--accent)}
 .check label{margin:0;font-weight:400}
 .hide{display:none}
 #state{font-size:20px;font-weight:700;text-align:center;padding:40px 22px;line-height:1.8}
-#state.good{background:#dcfce7;border-color:#86efac;color:#14532d}
-#state.bad{background:#fee2e2;border-color:#fca5a5;color:#7f1d1d}
-#state.wait{background:#fef9c3;border-color:#fde047;color:#713f12}
+#state.good{background:#12301f;border-color:#d4af37;color:#e7cf7a}
+#state.bad{background:#3a1a1a;border-color:#b91c1c;color:#fca5a5}
+#state.wait{background:#3a3010;border-color:#d4af37;color:#f3e08a}
 #who{margin-top:10px;font-size:14px;color:var(--muted)}
 #who a{color:var(--accent);cursor:pointer;margin-right:8px}
 </style>
@@ -68,7 +68,7 @@ button:disabled{opacity:.6;cursor:default}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-const CLIENT_ID='PUT_DISCORD_CLIENT_ID';
+const CLIENT_ID='1569634081916981268';
 const REDIRECT='https://nhhjih9-sudo.github.io/mod-applications/';
 const GUILD_ID='';
 const MIN_DAYS=30;
@@ -144,7 +144,7 @@ $('f').addEventListener('submit',async e=>{
   try{
     await db.collection('applications').add(d);
     show('✅ تم إرسال طلبك! افتح الموقع لاحقاً وشوف حالة طلبك.','good');
-  }catch(err){btn.disabled=false;msg.style.color='#dc2626';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
+  }catch(err){btn.disabled=false;msg.style.color='#f87171';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
 });
 </script>
 </body>
