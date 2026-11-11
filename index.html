@@ -23,11 +23,12 @@ input,textarea,select{width:100%;background:var(--field);color:var(--text);borde
 textarea{min-height:110px;resize:vertical}
 input:focus,textarea:focus,select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
 .req{color:var(--req)}
+.opt-note{color:var(--muted);font-weight:400;font-size:13px}
 button{width:100%;background:var(--accent);color:var(--ink);border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:.15s}
 button:hover{filter:brightness(1.08)}
 button:disabled{opacity:.6;cursor:default}
 .discord{background:#5865f2;color:#fff}
-#msg{margin-top:12px;font-weight:700;text-align:center}
+.msg{margin-top:12px;font-weight:700;text-align:center}
 .check{display:flex;gap:10px;align-items:center}
 .check input{width:20px;height:20px;accent-color:var(--accent)}
 .check label{margin:0;font-weight:400}
@@ -36,16 +37,13 @@ button:disabled{opacity:.6;cursor:default}
 #state.good{background:var(--good-bg);border-color:var(--good-bd);color:var(--good)}
 #state.bad{background:var(--bad-bg);border-color:var(--bad-bd);color:var(--bad)}
 #state.wait{background:var(--wait-bg);border-color:var(--wait-bd);color:var(--wait)}
-#who{margin-top:10px;font-size:14px;color:var(--muted)}
-#who a{color:var(--accent);cursor:pointer;margin-right:8px}
+.who{margin-top:10px;font-size:14px;color:var(--muted)}
+.who a{color:var(--accent);cursor:pointer;margin-right:8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-.opt{position:relative;text-align:center;margin:0;padding:26px 18px}
+.opt{text-align:center;margin:0;padding:26px 18px}
 .opt .ico{font-size:40px;margin-bottom:6px}
 .opt h3{margin:0 0 6px;font-size:20px;color:var(--title)}
 .opt p{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.7}
-.opt.soon{opacity:.8}
-.opt.soon button{background:var(--line);color:var(--muted);cursor:not-allowed}
-.tag{position:absolute;top:12px;left:12px;background:var(--accent);color:var(--ink);font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px}
 </style>
 </head>
 <body>
@@ -68,12 +66,11 @@ button:disabled{opacity:.6;cursor:default}
         <p>انضم لفريق إدارة الماب وساعد في حفظ النظام.</p>
         <button id="optMod">قدّم الآن</button>
       </div>
-      <div class="card opt soon">
-        <span class="tag">قريباً</span>
+      <div class="card opt">
         <div class="ico">💻</div>
         <h3>تقديم مبرمج</h3>
         <p>انضم لفريق البرمجة وطوّر الماب معنا.</p>
-        <button disabled>قريباً</button>
+        <button id="optDev">قدّم الآن</button>
       </div>
     </div>
   </div>
@@ -81,7 +78,7 @@ button:disabled{opacity:.6;cursor:default}
   <div id="state" class="card hide">جاري التحميل...</div>
 
   <div id="loginBox" class="card head hide" style="text-align:center">
-    <h1>🛡️ التقديم على مود</h1>
+    <h1 id="loginTitle">🛡️ التقديم</h1>
     <p class="sub" style="margin-bottom:18px">سجّل دخولك بحساب ديسكورد عشان تقدر تقدّم.</p>
     <button id="dl" class="discord">تسجيل الدخول عبر ديسكورد</button>
   </div>
@@ -90,7 +87,7 @@ button:disabled{opacity:.6;cursor:default}
     <div class="card head">
       <h1>🛡️ التقديم على مود</h1>
       <p class="sub">عبّ النموذج بدقة، وبنراجع طلبك ونرد عليك. ملاحظة: نسجّل عنوان IP الخاص بك مع الطلب.</p>
-      <div id="who"></div>
+      <div class="who"></div>
     </div>
     <form id="f">
       <div class="card"><label>اسمك داخل الماب <span class="req">*</span></label><input name="ingame" required maxlength="60"></div>
@@ -101,7 +98,28 @@ button:disabled{opacity:.6;cursor:default}
         <select name="hours" required><option value="">اختر</option><option>أقل من ساعة</option><option>1 - 3 ساعات</option><option>3 - 5 ساعات</option><option>أكثر من 5 ساعات</option></select></div>
       <div class="card check"><input type="checkbox" id="agree" required><label for="agree">أوافق على القوانين وأتعهد بالالتزام بها</label></div>
       <button id="btn" type="submit">إرسال الطلب</button>
-      <div id="msg"></div>
+      <div id="msg" class="msg"></div>
+    </form>
+  </div>
+
+  <div id="devBox" class="hide">
+    <div class="card head">
+      <h1>💻 التقديم على مبرمج</h1>
+      <p class="sub">عبّ النموذج بدقة، وبنراجع طلبك ونرد عليك. ملاحظة: نسجّل عنوان IP الخاص بك مع الطلب.</p>
+      <div class="who"></div>
+    </div>
+    <form id="fd">
+      <div class="card"><label>اسمك داخل الماب <span class="req">*</span></label><input name="ingame" required maxlength="60"></div>
+      <div class="card"><label>عمرك <span class="req">*</span></label><input name="age" type="number" min="8" max="80" required></div>
+      <div class="card"><label>اللغات والأدوات اللي تتقنها <span class="req">*</span></label><input name="langs" required maxlength="200" placeholder="مثال: Lua, JavaScript, Python"></div>
+      <div class="card"><label>خبرتك وأعمالك السابقة <span class="req">*</span></label><textarea name="experience" required maxlength="800"></textarea></div>
+      <div class="card"><label>رابط أعمالك <span class="opt-note">(اختياري)</span></label><input name="portfolio" maxlength="200" placeholder="https://..." dir="ltr"></div>
+      <div class="card"><label>ليش تبي تنضم لفريق البرمجة؟ <span class="req">*</span></label><textarea name="reason" required maxlength="800"></textarea></div>
+      <div class="card"><label>كم ساعة تقدر تتواجد يومياً؟ <span class="req">*</span></label>
+        <select name="hours" required><option value="">اختر</option><option>أقل من ساعة</option><option>1 - 3 ساعات</option><option>3 - 5 ساعات</option><option>أكثر من 5 ساعات</option></select></div>
+      <div class="card check"><input type="checkbox" id="agreed" required><label for="agreed">أوافق على القوانين وأتعهد بالالتزام بها</label></div>
+      <button id="btnd" type="submit">إرسال الطلب</button>
+      <div id="msgd" class="msg"></div>
     </form>
   </div>
 </div>
@@ -110,13 +128,17 @@ button:disabled{opacity:.6;cursor:default}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-const CLIENT_ID='PUT_DISCORD_CLIENT_ID';
+const CLIENT_ID='1569634081916981268';
 const REDIRECT='https://nhhjih9-sudo.github.io/mod-applications/';
-const GUILD_ID='';
+const GUILD_ID='1490880197036081162';
 const MIN_DAYS=30;
 
+const TYPES={
+  mod:{title:'🛡️ التقديم على مود',box:'formBox',cfg:'open'},
+  dev:{title:'💻 التقديم على مبرمج',box:'devBox',cfg:'openDev'}
+};
 const $=id=>document.getElementById(id);
-let IP='',KEY='',USER=null;
+let IP='',KEY='',USER=null,TYPE='mod';
 
 function setTheme(t){
   document.documentElement.dataset.theme=t;
@@ -127,17 +149,19 @@ setTheme(localStorage.getItem('theme')||'dark');
 $('theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='light'?'dark':'light');
 
 function view(name){
-  for(const id of ['menu','state','loginBox','formBox'])$(id).classList.toggle('hide',id!==name);
+  for(const id of ['menu','state','loginBox','formBox','devBox'])$(id).classList.toggle('hide',id!==name);
   $('back').classList.toggle('hide',name==='menu');
 }
 function show(t,cls){const s=$('state');s.className='card '+(cls||'');s.textContent=t;view('state')}
 $('back').onclick=()=>view('menu');
-$('optMod').onclick=()=>startMod();
+$('optMod').onclick=()=>startApp('mod');
+$('optDev').onclick=()=>startApp('dev');
 
 function ageDays(id){return (Date.now()-(Number(BigInt(id)>>22n)+1420070400000))/864e5}
 
 $('dl').onclick=()=>{
   if(CLIENT_ID.startsWith('PUT_'))return alert('حط Client ID حق ديسكورد في الكود.');
+  sessionStorage.setItem('pt',TYPE);
   location.href='https://discord.com/oauth2/authorize?client_id='+CLIENT_ID+'&response_type=token&redirect_uri='+encodeURIComponent(REDIRECT)+'&scope='+encodeURIComponent(GUILD_ID?'identify guilds':'identify');
 };
 
@@ -154,14 +178,17 @@ async function finishLogin(token){
   return true;
 }
 
-async function startMod(){
+async function startApp(type){
+  TYPE=type;
   const raw=localStorage.getItem('du');
-  if(!raw)return view('loginBox');
+  if(!raw){$('loginTitle').textContent=TYPES[type].title;return view('loginBox')}
   USER=JSON.parse(raw);
-  $('who').textContent='مسجّل بحساب: '+USER.name;
-  const out=document.createElement('a');out.textContent='خروج';
-  out.onclick=()=>{localStorage.removeItem('du');location.reload()};
-  $('who').append(out);
+  document.querySelectorAll('.who').forEach(w=>{
+    w.textContent='مسجّل بحساب: '+USER.name;
+    const out=document.createElement('a');out.textContent='خروج';
+    out.onclick=()=>{localStorage.removeItem('du');location.reload()};
+    w.append(out);
+  });
   show('جاري التحميل...');
 
   try{IP=(await (await fetch('https://api.ipify.org?format=json')).json()).ip}
@@ -172,7 +199,12 @@ async function startMod(){
     if(bIp.exists||bAcc.exists)return show('🚫 تم حظرك من التقديم.','bad');
     const q=await db.collection('applications').where('discordId','==',USER.id).get();
     let last=null;
-    q.forEach(d=>{const x=d.data(),t=x.createdAt?x.createdAt.toMillis():Infinity;if(!last||t>last.t)last={x,t}});
+    q.forEach(d=>{
+      const x=d.data();
+      if((x.type||'mod')!==type)return;
+      const t=x.createdAt?x.createdAt.toMillis():Infinity;
+      if(!last||t>last.t)last={x,t};
+    });
     if(last&&!last.x.canRetry){
       const s=last.x.status;
       if(s==='accepted')return show('🎉 مبروك! تم قبول طلبك.','good');
@@ -180,8 +212,8 @@ async function startMod(){
       return show('⏳ طلبك قيد المراجعة، انتظر الرد.','wait');
     }
     const cfg=await db.doc('settings/config').get();
-    if(cfg.exists&&cfg.data().open===false)return show('🔒 التقديم مغلق حالياً.','wait');
-    view('formBox');
+    if(cfg.exists&&cfg.data()[TYPES[type].cfg]===false)return show('🔒 التقديم مغلق حالياً.','wait');
+    view(TYPES[type].box);
   }catch(e){show('صار خطأ في التحميل، حدّث الصفحة.','bad')}
 }
 
@@ -192,23 +224,27 @@ async function startMod(){
     show('جاري تسجيل الدخول...');
     try{if(!await finishLogin(p.get('access_token')))return}
     catch(e){return show('فشل تسجيل الدخول عبر ديسكورد. حدّث الصفحة وجرّب مرة ثانية.','bad')}
-    return startMod();
+    return startApp(sessionStorage.getItem('pt')==='dev'?'dev':'mod');
   }
   view('menu');
 })();
 
-$('f').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const btn=$('btn'),msg=$('msg');
-  btn.disabled=true;msg.style.color='';msg.textContent='جاري الإرسال...';
-  const d=Object.fromEntries(new FormData($('f')));
-  d.age=Number(d.age);d.discord=USER.name;d.discordId=USER.id;d.ip=IP;d.ipKey=KEY;d.status='pending';
-  d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
-  try{
-    await db.collection('applications').add(d);
-    show('✅ تم إرسال طلبك! افتح الموقع لاحقاً وشوف حالة طلبك.','good');
-  }catch(err){btn.disabled=false;msg.style.color='var(--req)';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
-});
+function bind(fid,bid,mid,type){
+  $(fid).addEventListener('submit',async e=>{
+    e.preventDefault();
+    const btn=$(bid),msg=$(mid);
+    btn.disabled=true;msg.style.color='';msg.textContent='جاري الإرسال...';
+    const d=Object.fromEntries(new FormData($(fid)));
+    d.age=Number(d.age);d.type=type;d.discord=USER.name;d.discordId=USER.id;d.ip=IP;d.ipKey=KEY;d.status='pending';
+    d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+    try{
+      await db.collection('applications').add(d);
+      show('✅ تم إرسال طلبك! افتح الموقع لاحقاً وشوف حالة طلبك.','good');
+    }catch(err){btn.disabled=false;msg.style.color='var(--req)';msg.textContent='صار خطأ، يمكن التقديم مقفل أو أنت محظور.'}
+  });
+}
+bind('f','btn','msg','mod');
+bind('fd','btnd','msgd','dev');
 </script>
 </body>
 </html>

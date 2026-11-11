@@ -23,9 +23,10 @@ button:hover{filter:brightness(1.1)}
 .tab.on{background:var(--accent);color:var(--ink)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .f{margin:7px 0;line-height:1.7}.f b{color:var(--muted);font-weight:500}
+.f a{color:var(--accent)}
 .badge{padding:3px 12px;border-radius:20px;font-size:13px;font-weight:500}
 .pending{background:#4a3d10;color:#f3e08a}.accepted{background:#14391f;color:#86efac}.rejected{background:#4a1c1c;color:#fca5a5}
-.retry{background:#1e2f5a;color:#c7d2fe}.banned{background:#5b1c1c;color:#fecaca}
+.retry{background:#1e2f5a;color:#c7d2fe}.banned{background:#5b1c1c;color:#fecaca}.typ{background:#3a2f6b;color:#ddd6fe}
 .ip{direction:ltr;display:inline-block;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-family:monospace}
 .hide{display:none}
 .or{text-align:center;color:var(--muted);margin:14px 0;font-size:14px}
@@ -46,8 +47,9 @@ button:hover{filter:brightness(1.1)}
   <div id="panel" class="hide">
     <div class="card row" style="border-top:5px solid var(--accent);margin-bottom:12px">
       <button id="ownerBtn" class="warn hide">👑 قائمة الأدمن</button>
-      <h2 style="margin:0;flex:1">🛡️ طلبات المود</h2>
+      <h2 style="margin:0;flex:1">🛡️ لوحة التقديمات</h2>
       <button id="tg"></button>
+      <button id="tgd"></button>
       <button class="ghost" id="out">خروج</button>
     </div>
     <div id="ownerBox" class="card hide">
@@ -60,6 +62,7 @@ button:hover{filter:brightness(1.1)}
         <button id="aadd" class="ok">إضافة</button>
       </div>
     </div>
+    <div class="row" id="tfs"></div>
     <div class="row" id="tabs"></div>
     <div id="list"></div>
   </div>
@@ -75,7 +78,9 @@ const ADMIN_REDIRECT='https://nhhjih9-sudo.github.io/mod-applications/admin.html
 
 const $=id=>document.getElementById(id);
 const LABELS={all:'الكل',pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض',bans:'المحظورون'};
-let filter='pending',docs=[],bans={},isOpen=true,CODE='',OWNER='',admins=[],sel=new Set(),prog='';
+const TL={mod:'مود',dev:'مبرمج'};
+const T=x=>x.type||'mod';
+let filter='pending',tf='all',docs=[],bans={},isOpen=true,isOpenDev=true,CODE='',OWNER='',admins=[],sel=new Set(),prog='';
 
 function el(t,c,txt){const e=document.createElement(t);if(c)e.className=c;if(txt!==undefined)e.textContent=txt;return e}
 async function adm(fn){const b=db.batch();b.set(db.doc('sessions/admin'),{code:CODE});fn(b);await b.commit()}
@@ -89,34 +94,35 @@ async function ownerRun(fn){
   catch(e){alert('فشلت العملية. تأكد إن OWNER_CODE في Cloudflare نفسه كود الأونر في قواعد Firestore.')}
 }
 
-async function roleCall(userId,action){
+async function roleCall(userId,action,kind){
   try{
-    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,userId,action})});
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE,userId,action,kind})});
     const j=await r.json().catch(()=>({}));
     if(r.ok)return {ok:true};
+    if(r.status===500)return {ok:false,why:'رتبة المبرمج ما انضافت (DEV_ROLE_ID) في Cloudflare'};
     if(r.status===403&&!j.status)return {ok:false,why:'كود الأدمن في الـ Worker غير مطابق لكودك'};
     if(j.status===404)return {ok:false,why:'الشخص مو داخل السيرفر'};
     if(j.status===403)return {ok:false,why:'رتبة البوت أقل من الرتبة المطلوبة أو ينقصه صلاحية Manage Roles'};
     return {ok:false,why:'فشل تعديل الرتبة، تأكد من إعدادات البوت'};
   }catch(e){return {ok:false,why:'تعذر الاتصال بالـ Worker'}}
 }
-async function giveRole(userId,action,manual){
-  const r=await roleCall(userId,action);
+async function giveRole(userId,action,kind,manual){
+  const r=await roleCall(userId,action,kind);
   if(!r.ok)alert((manual?'':'تم تغيير الحالة، لكن ')+r.why+'.');
   else if(manual)alert('تم ✅');
 }
 function nameOf(id){const d=docs.find(d=>d.data().discordId===id);return d?d.data().discord:id}
 function renderProg(){const p=$('prog');if(p)p.textContent=prog}
-async function bulk(ids,action){
-  ids=[...new Set(ids)];
-  if(!ids.length)return alert('ما فيه أحد.');
+async function bulk(items,action){
+  const seen=new Set();items=items.filter(i=>{const k=i.kind+'|'+i.id;if(seen.has(k))return false;seen.add(k);return true});
+  if(!items.length)return alert('ما فيه أحد.');
   const word=action==='add'?'إعطاء الرتبة':'سحب الرتبة';
-  if(!confirm(word+' لعدد '+ids.length+' شخص؟'))return;
+  if(!confirm(word+' لعدد '+items.length+' شخص؟'))return;
   let ok=0;const fails=[];
-  for(let i=0;i<ids.length;i++){
-    prog=word+': '+(i+1)+' / '+ids.length+' ...';renderProg();
-    const r=await roleCall(ids[i],action);
-    if(r.ok)ok++;else{fails.push(nameOf(ids[i])+' ('+r.why+')');if(r.why.startsWith('كود'))break}
+  for(let i=0;i<items.length;i++){
+    prog=word+': '+(i+1)+' / '+items.length+' ...';renderProg();
+    const r=await roleCall(items[i].id,action,items[i].kind);
+    if(r.ok)ok++;else{fails.push(nameOf(items[i].id)+' ['+TL[items[i].kind]+'] ('+r.why+')');if(r.why.startsWith('كود'))break}
     await new Promise(s=>setTimeout(s,500));
   }
   prog='انتهى: نجح '+ok+' / فشل '+fails.length;renderProg();
@@ -137,7 +143,8 @@ $('dl').onclick=()=>{
   location.href='https://discord.com/oauth2/authorize?client_id='+CLIENT_ID+'&response_type=token&redirect_uri='+encodeURIComponent(ADMIN_REDIRECT)+'&scope=identify';
 };
 $('out').onclick=()=>{sessionStorage.removeItem('c');sessionStorage.removeItem('o');location.reload()};
-$('tg').onclick=()=>run(b=>b.set(db.doc('settings/config'),{open:!isOpen}));
+$('tg').onclick=()=>run(b=>b.set(db.doc('settings/config'),{open:!isOpen},{merge:true}));
+$('tgd').onclick=()=>run(b=>b.set(db.doc('settings/config'),{openDev:!isOpenDev},{merge:true}));
 $('ownerBtn').onclick=()=>$('ownerBox').classList.toggle('hide');
 $('aadd').onclick=()=>{
   const id=$('aid').value.trim(),name=$('aname').value.trim().replace(/\|/g,'')||'بدون اسم';
@@ -173,7 +180,11 @@ function start(){
   $('login').classList.add('hide');$('panel').classList.remove('hide');
   db.collection('applications').orderBy('createdAt','desc').onSnapshot(s=>{docs=s.docs;render()});
   db.collection('bans').onSnapshot(s=>{bans={};s.forEach(d=>bans[d.id]=d.data().ip);render()});
-  db.doc('settings/config').onSnapshot(s=>{isOpen=!s.exists||s.data().open!==false;render()});
+  db.doc('settings/config').onSnapshot(s=>{
+    isOpen=!s.exists||s.data().open!==false;
+    isOpenDev=!s.exists||s.data().openDev!==false;
+    render();
+  });
   if(OWNER){
     $('ownerBtn').classList.remove('hide');
     db.doc('adminlist/main').onSnapshot(s=>{admins=s.exists?(s.data().users||[]):[];renderAdmins()});
@@ -194,12 +205,31 @@ function renderAdmins(){
   });
 }
 
+function addField(c,k,v,link){
+  if(v===undefined||v==='')return;
+  const r=el('div','f');r.append(el('b','',k+': '));
+  if(link&&/^https?:\/\//i.test(v)){
+    const a=document.createElement('a');a.href=v;a.target='_blank';a.rel='noopener noreferrer';a.textContent=v;a.dir='ltr';r.append(a);
+  }else r.append(document.createTextNode(v));
+  c.append(r);
+}
+
 function render(){
-  $('tg').textContent=isOpen?'🔒 قفل التقديم':'🔓 فتح التقديم';
+  $('tg').textContent=isOpen?'🔒 قفل مود':'🔓 فتح مود';
   $('tg').className=isOpen?'no':'ok';
+  $('tgd').textContent=isOpenDev?'🔒 قفل مبرمج':'🔓 فتح مبرمج';
+  $('tgd').className=isOpenDev?'no':'ok';
+
+  const tfs=$('tfs');tfs.replaceChildren();
+  [['all','كل الأنواع'],['mod','مود'],['dev','مبرمج']].forEach(([k,txt])=>{
+    const b=el('button','tab ghost'+(tf===k?' on':''),txt);
+    b.onclick=()=>{tf=k;prog='';render()};tfs.append(b);
+  });
+  const base=tf==='all'?docs:docs.filter(d=>T(d.data())===tf);
+
   const tabs=$('tabs');tabs.replaceChildren();
   for(const k in LABELS){
-    const n=k==='all'?docs.length:k==='bans'?Object.keys(bans).length:docs.filter(d=>d.data().status===k).length;
+    const n=k==='all'?base.length:k==='bans'?Object.keys(bans).length:base.filter(d=>d.data().status===k).length;
     const b=el('button','tab ghost'+(filter===k?' on':''),`${LABELS[k]} (${n})`);
     b.onclick=()=>{filter=k;prog='';render()};tabs.append(b);
   }
@@ -217,37 +247,42 @@ function render(){
     return;
   }
   if(filter==='accepted'){
-    const acc=()=>docs.filter(d=>d.data().status==='accepted'&&d.data().discordId).map(d=>d.data().discordId);
+    const acc=()=>base.filter(d=>d.data().status==='accepted'&&d.data().discordId).map(d=>({id:d.data().discordId,kind:T(d.data())}));
+    const selItems=()=>[...sel].map(k=>{const [kind,id]=k.split('|');return {id,kind}});
     const t=el('div','card'),r1=el('div','row');
     const mk=(txt,cls,fn)=>{const b=el('button',cls,txt);b.onclick=fn;r1.append(b)};
     mk('✅ إعطاء الرتبة للكل','ok',()=>bulk(acc(),'add'));
     mk('❌ سحب الرتبة من الكل','no',()=>bulk(acc(),'remove'));
-    mk('إعطاء الرتبة للمحددين','ok',()=>bulk([...sel],'add'));
-    mk('سحب الرتبة من المحددين','no',()=>bulk([...sel],'remove'));
-    mk('تحديد الكل','ghost',()=>{acc().forEach(i=>sel.add(i));render()});
+    mk('إعطاء الرتبة للمحددين','ok',()=>bulk(selItems(),'add'));
+    mk('سحب الرتبة من المحددين','no',()=>bulk(selItems(),'remove'));
+    mk('تحديد الكل','ghost',()=>{acc().forEach(i=>sel.add(i.kind+'|'+i.id));render()});
     mk('إلغاء التحديد','ghost',()=>{sel.clear();render()});
     t.append(r1);
     const p=el('div','f');p.id='prog';p.textContent=prog||('المحدد: '+sel.size);
     t.append(p);list.append(t);
   }
-  const shown=docs.filter(d=>filter==='all'||d.data().status===filter);
+  const shown=base.filter(d=>filter==='all'||d.data().status===filter);
   if(!shown.length)list.append(el('div','card','لا توجد طلبات.'));
   for(const d of shown){
-    const x=d.data(),c=el('div','card'),h=el('div','row');
+    const x=d.data(),kind=T(x),c=el('div','card'),h=el('div','row');
     h.style.marginBottom='8px';
+    const skey=kind+'|'+x.discordId;
     if(filter==='accepted'&&x.discordId){
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=sel.has(x.discordId);
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=sel.has(skey);
       cb.style.cssText='width:20px;height:20px;margin:0;padding:0;accent-color:#d4af37';
-      cb.onchange=()=>{cb.checked?sel.add(x.discordId):sel.delete(x.discordId);if(!prog){const p=$('prog');if(p)p.textContent='المحدد: '+sel.size}};
+      cb.onchange=()=>{cb.checked?sel.add(skey):sel.delete(skey);if(!prog){const p=$('prog');if(p)p.textContent='المحدد: '+sel.size}};
       h.append(cb);
     }
-    h.append(el('b','',x.discord),el('span','badge '+x.status,LABELS[x.status]||x.status));
+    h.append(el('b','',x.discord),el('span','badge typ',TL[kind]),el('span','badge '+x.status,LABELS[x.status]||x.status));
     if(x.canRetry)h.append(el('span','badge retry','لديه فرصة جديدة'));
     if((x.ipKey&&bans[x.ipKey])||(x.discordId&&bans['d_'+x.discordId]))h.append(el('span','badge banned','محظور'));
     c.append(h);
-    [['اسم الماب',x.ingame],['العمر',x.age],['الساعات',x.hours],['الخبرة',x.experience],['السبب',x.reason]].forEach(([k,v])=>{
-      const r=el('div','f');r.append(el('b','',k+': '),document.createTextNode(v??''));c.append(r);
-    });
+    addField(c,'اسم الماب',x.ingame);
+    addField(c,'العمر',x.age);
+    if(kind==='dev'){addField(c,'اللغات',x.langs);addField(c,'الخبرة',x.experience);addField(c,'رابط الأعمال',x.portfolio,true)}
+    else addField(c,'الخبرة',x.experience);
+    addField(c,'السبب',x.reason);
+    addField(c,'الساعات',x.hours);
     const ipr=el('div','f');ipr.append(el('b','','IP: '),el('span','ip',x.ip||'—'));c.append(ipr);
     if(x.discordId){const di=el('div','f');di.append(el('b','','Discord ID: '),el('span','ip',x.discordId));c.append(di)}
     const a=el('div','row');a.style.margin='12px 0 0';
@@ -255,19 +290,19 @@ function render(){
     const ok=el('button','ok','قبول'),no=el('button','no','رفض'),rt=el('button','warn','فرصة جديدة');
     ok.onclick=async()=>{
       if(!await act(b=>b.update(ref(),{status:'accepted',canRetry:false})))return;
-      if(x.discordId)giveRole(x.discordId,'add');
+      if(x.discordId)giveRole(x.discordId,'add',kind,false);
       else alert('تم القبول، لكن هذا طلب قديم بدون حساب ديسكورد، فما يقدر البوت يعطيه رتبة.');
     };
     no.onclick=async()=>{
       if(!await act(b=>b.update(ref(),{status:'rejected',canRetry:false})))return;
-      if(x.status==='accepted'&&x.discordId)giveRole(x.discordId,'remove');
+      if(x.status==='accepted'&&x.discordId)giveRole(x.discordId,'remove',kind,false);
     };
     rt.onclick=()=>run(b=>b.update(ref(),{canRetry:true}));
     a.append(ok,no,rt);
     if(x.status==='accepted'&&x.discordId){
       const ga=el('button','ok','إعطاء رتبة'),ra=el('button','ghost','سحب رتبة');
-      ga.onclick=()=>giveRole(x.discordId,'add',true);
-      ra.onclick=()=>giveRole(x.discordId,'remove',true);
+      ga.onclick=()=>giveRole(x.discordId,'add',kind,true);
+      ra.onclick=()=>giveRole(x.discordId,'remove',kind,true);
       a.append(ga,ra);
     }
     if(x.ipKey){
